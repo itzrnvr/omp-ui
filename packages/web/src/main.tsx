@@ -1,4 +1,5 @@
 import { createConfiguredWebAPIs, getDesktopRelayRestoreReady } from './runtimeConfig';
+import { detectOmpBackend, watchOmpBackend } from '@openchamber/ui/lib/omp/backend';
 import { registerSW } from 'virtual:pwa-register';
 
 import type { RuntimeAPIs } from '@openchamber/ui/lib/api/types';
@@ -83,6 +84,11 @@ const unregisterDevelopmentServiceWorkers = (): void => {
 
 const start = async (): Promise<void> => {
   window.__OPENCHAMBER_RUNTIME_APIS__ = createConfiguredWebAPIs();
+
+  // The session list's transport depends on the backend the server reports,
+  // so the answer lands before the app mounts and starts loading sessions.
+  watchOmpBackend();
+  await detectOmpBackend();
 
   // Reload into the other app shell when the viewport crosses the phone
   // threshold after boot (no-op in fixed shells and with ?surface= overrides).

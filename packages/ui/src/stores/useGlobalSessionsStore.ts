@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { Session } from '@/lib/opencode/model';
 import { opencodeClient } from '@/lib/opencode/client';
+import { isOmpBackend } from '@/lib/omp/backend';
+import { listOmpSessionsPage } from '@/lib/omp/client';
 import { filterManagedChatsForRuntime, listGlobalSessionPages, splitGlobalSessionsByArchived, type SessionPageLister } from '@/stores/globalSessions';
 import { getReviewTransferDirection, type ReviewTransferDirection } from '@/lib/reviewFlow';
 import { getOriginalSessionID, getReviewSessionID } from '@/lib/sessionReviewMetadata';
@@ -249,8 +251,13 @@ type DirectoryPageResult = {
   errors: unknown[];
 };
 
-/** The session-list transport, bound once so paging code stays testable. */
-const listSessionPage: SessionPageLister = (options) => opencodeClient.listSessionsPage(options);
+/**
+ * The session-list transport, bound once so paging code stays testable.
+ * On an OMP backend the server walks `~/.omp` once per TTL window, so a
+ * per-directory page is a filter over that walk rather than a fresh one.
+ */
+const listSessionPage: SessionPageLister = (options) =>
+  isOmpBackend() ? listOmpSessionsPage(options) : opencodeClient.listSessionsPage(options);
 
 const fetchDirectoryPages = async (
   directories: Set<string>,
